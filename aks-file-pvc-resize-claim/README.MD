@@ -1,4 +1,4 @@
-# Example resizing PBC without downtime
+# Example resizing PVC without downtime with Azure Disk CSI
 * Install Azure Disk CSI Driver  
   * https://learn.microsoft.com/en-us/azure/aks/csi-storage-drivers
 * Apply the the original claim
