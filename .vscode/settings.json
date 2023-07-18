@@ -1,0 +1,8 @@
+{
+    "azureFunctions.deploySubpath": "function-zip-file/bin/Release/net7.0/publish",
+    "azureFunctions.projectLanguage": "C#",
+    "azureFunctions.projectRuntime": "~4",
+    "debug.internalConsoleOptions": "neverOpen",
+    "azureFunctions.preDeployTask": "publish (functions)",
+    "dotnet.defaultSolution": "function-zip-file/function-zip-file.sln"
+}
