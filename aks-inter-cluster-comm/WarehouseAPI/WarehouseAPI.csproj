@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>2a0569ce-497f-47c5-98ae-3b25de2e1cf9</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <ApplicationInsightsResourceId>/subscriptions/29d43490-9ab4-4153-b918-9b56541f1048/resourceGroups/az-k8s-ggpshd-rg/providers/microsoft.insights/components/ai-aks-inter-cluster-comm</ApplicationInsightsResourceId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.15.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.9" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.18.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+</Project>
