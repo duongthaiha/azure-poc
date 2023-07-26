@@ -17,6 +17,7 @@ spec:
         containers:
         - name: frontendapi
           image: crazk8sggpshdu3ezfstib6djo.azurecr.io/frontendapi:latest
+          imagePullPolicy: Always
           ports:
           - containerPort: 80
           - containerPort: 443     
