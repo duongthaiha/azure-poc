@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontendapi-deployment
+  labels:
+    app: frontendapi
+spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: frontendapi
+    template: 
+      metadata: 
+        labels:
+          app: frontendapi
+      spec:
+        containers:
+        - name: frontendapi
+          image: crazk8sggpshdu3ezfstib6djo.azurecr.io/frontendapi:latest
+          ports:
+          - containerPort: 80
+          - containerPort: 443     
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontendapi-service
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  - name: https
+    port: 443
+    targetPort: 443
+  selector:
+    app: frontendapi
