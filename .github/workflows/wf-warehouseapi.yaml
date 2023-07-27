@@ -27,7 +27,7 @@ jobs:
                 subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
                 tenant-id: ${{ secrets.AZURE_TENANT_ID }}
             - name: Build and push image to ACR
-              run: az acr build --image ${{ env.CONTAINER_NAME }}:${{ github.sha }} --registry ${{ env.AZURE_CONTAINER_REGISTRY }} -g ${{ env.ACR_RESOURCE_GROUP }} -f ./aks-inter-cluster-comm/WarehouseAPI/WarehouseAPI.yaml ./aks-inter-cluster-comm/
+              run: az acr build --image ${{ env.CONTAINER_NAME }}:${{ github.sha }} --registry ${{ env.AZURE_CONTAINER_REGISTRY }} -g ${{ env.ACR_RESOURCE_GROUP }} -f ./aks-inter-cluster-comm/WarehouseAPI/WarehouseAPI.yaml ./aks-inter-cluster-comm
     deploy:
         permissions:
             actions: read
