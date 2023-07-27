@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrontEndAPI", "FrontEndAPI\FrontEndAPI.csproj", "{9AC89EEE-EC19-4EAC-A634-CCB00EFC1575}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FrontEndAPI", "FrontEndAPI\FrontEndAPI.csproj", "{9AC89EEE-EC19-4EAC-A634-CCB00EFC1575}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarehouseAPI", "WarehouseAPI\WarehouseAPI.csproj", "{CB0339B5-8480-4DBA-99D9-2733E9896340}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WarehouseAPI", "WarehouseAPI\WarehouseAPI.csproj", "{CB0339B5-8480-4DBA-99D9-2733E9896340}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infrasructure", "Infrasructure", "{552FED35-D7EF-4959-BE54-98831C36FCCA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
