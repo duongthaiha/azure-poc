@@ -117,6 +117,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-06-01-pr
     
   }
 }
+var containerRegistryName = containerRegistry.name
 resource buildTask 'Microsoft.ContainerRegistry/registries/tasks@2019-06-01-preview' = {
   name: 'build-task'
   parent: containerRegistry
@@ -127,7 +128,7 @@ resource buildTask 'Microsoft.ContainerRegistry/registries/tasks@2019-06-01-prev
   properties: {
     credentials:{
       customRegistries: {
-        'acrhaduongpoc1234.azurecr.io': {
+        '${containerRegistryName}': {
           identity: '[system]'
         }
       }
@@ -258,14 +259,18 @@ resource contributorRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022
   name: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
 } 
 
-resource acrTaskRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource acrTaskArcPushRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(buildTask.id, arcPushRoleDefinition.id, resourceGroup().name)
   properties: {
     principalId: buildTask.identity.principalId
     roleDefinitionId: arcPushRoleDefinition.id
   }
+  scope:containerRegistry
 }
-resource readRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+
+
+
+resource assignmentReadRoleSelfHostIdentity 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(selfHostAgentInstance.id, readerRoleDefinition.id, resourceGroup().name)
   properties: {
     principalId: selfHostAgentInstance.identity.principalId
