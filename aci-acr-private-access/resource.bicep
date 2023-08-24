@@ -8,7 +8,7 @@ param aciSubnetPrefix string = '10.0.1.0/24'
 param acrName string = 'acr${uniqueString(resourceGroup().id)}'
 param AZP_URL string
 param AZP_TOKEN string
-param AZP_AGENT_NAME string = 'mydockeragent'
+param AZP_AGENT_NAME string = 'agent${uniqueString(resourceGroup().id)}}'
 param GIT_TOKEN string
 param GIT_REPO string
 
@@ -117,7 +117,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-06-01-pr
     
   }
 }
-var containerRegistryName = containerRegistry.name
+var containerRegistryName = '${containerRegistry.name}.azurecr.io'
 resource buildTask 'Microsoft.ContainerRegistry/registries/tasks@2019-06-01-preview' = {
   name: 'build-task'
   parent: containerRegistry
@@ -264,6 +264,7 @@ resource acrTaskArcPushRoleAssignment 'Microsoft.Authorization/roleAssignments@2
   properties: {
     principalId: buildTask.identity.principalId
     roleDefinitionId: arcPushRoleDefinition.id
+    principalType: 'ServicePrincipal'
   }
   scope:containerRegistry
 }
