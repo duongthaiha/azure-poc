@@ -8,6 +8,10 @@ param aciSubnetPrefix string = '10.0.1.0/24'
 param acrName string = 'acr${uniqueString(resourceGroup().id)}'
 param AZP_URL string
 param AZP_TOKEN string
+param AZP_AGENT_NAME string = 'mydockeragent'
+param GIT_TOKEN string
+param GIT_REPO string
+
 
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2023-04-01' = {
   name: vnetName
@@ -113,16 +117,90 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-06-01-pr
     
   }
 }
+resource buildTask 'Microsoft.ContainerRegistry/registries/tasks@2019-06-01-preview' = {
+  name: 'build-task'
+  parent: containerRegistry
+  location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    credentials:{
+      customRegistries: {
+        'acrhaduongpoc1234.azurecr.io': {
+          identity: '[system]'
+        }
+      }
+      sourceRegistry: {
+        loginMode: 'Default'
+      }
+    }
+    platform: {
+      os: 'linux'
+      architecture: 'amd64'
+    }
+    step: {
+      type: 'Docker'
+      imageNames: [
+        'weatherapipush:latest'
+      ]
+      isPushEnabled: true
+      noCache: false
+      dockerFilePath: 'Dockerfile'
+      arguments: []
+      contextPath: GIT_REPO
+      contextAccessToken: GIT_TOKEN
+    }
+    trigger: {
+      sourceTriggers: [
+        {
+          sourceRepository: {
+            sourceControlType: 'Github'
+            repositoryUrl: GIT_REPO
+            branch: 'master'
+            sourceControlAuthProperties: {
+              token: GIT_TOKEN
+              tokenType: 'PAT'
+            }
+          }
+          sourceTriggerEvents: [
+            'commit'
+            'pullrequest'
+          ]
+          status: 'Enabled'
+          name: 'defaultSourceTriggerName'
+        }
+      ]
+      baseImageTrigger: {
+        baseImageTriggerType: 'Runtime'
+        updateTriggerPayloadType: 'Default'
+        status: 'Enabled'
+        name: 'defaultBaseimageTriggerName'
+      }
+    }
+    isSystemTask: false
+  }
+}
+
 
 resource selfHostAgentInstance 'Microsoft.ContainerInstance/containerGroups@2023-05-01' = {
   name: 'self-host-agent'
   location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     containers: [
       {
         name: 'self-host-agent'
         properties: {
           image: 'duongthaiha/dockeragent:latest'
+          ports: [
+            {
+              protocol: 'TCP'
+              port: 80
+            }
+          ]
           resources: {
             requests: {
               cpu: 1
@@ -140,7 +218,7 @@ resource selfHostAgentInstance 'Microsoft.ContainerInstance/containerGroups@2023
             }
             {
               name: 'AZP_AGENT_NAME'
-              value: 'mydockeragent'
+              value: AZP_AGENT_NAME
             }
           ]
         }
@@ -148,6 +226,15 @@ resource selfHostAgentInstance 'Microsoft.ContainerInstance/containerGroups@2023
     ]
     osType: 'Linux'
     restartPolicy: 'Always'
+    ipAddress: {
+     type: 'Private'
+      ports: [
+        {
+        port: 80
+        protocol: 'TCP'
+        }
+      ]
+    }
     subnetIds: [
      {
       id: virtualNetwork::aciSubnet.id
@@ -155,7 +242,47 @@ resource selfHostAgentInstance 'Microsoft.ContainerInstance/containerGroups@2023
     ]
   }
 }
+@description('This is the built-in Reader role. See https://docs.microsoft.com/azure/role-based-access-control/built-in-roles#contributor')
+resource readerRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' existing = {
+  scope: subscription()
+  name: 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
+} 
+@description('This is the built-in ArcPush role')
+resource arcPushRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' existing = {
+  scope: subscription()
+  name: '8311e382-0749-4cb8-b61a-304f252e45ec'
+} 
+@description('This is the built-in ArcPush role')
+resource contributorRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' existing = {
+  scope: subscription()
+  name: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+} 
 
+resource acrTaskRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(buildTask.id, arcPushRoleDefinition.id, resourceGroup().name)
+  properties: {
+    principalId: buildTask.identity.principalId
+    roleDefinitionId: arcPushRoleDefinition.id
+  }
+}
+resource readRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(selfHostAgentInstance.id, readerRoleDefinition.id, resourceGroup().name)
+  properties: {
+    principalId: selfHostAgentInstance.identity.principalId
+    roleDefinitionId: readerRoleDefinition.id
+    principalType: 'ServicePrincipal'
+  }
+  scope:selfHostAgentInstance
+}
+resource registryContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(selfHostAgentInstance.id, contributorRoleDefinition.id, resourceGroup().name)
+  properties: {
+    principalId: selfHostAgentInstance.identity.principalId
+    roleDefinitionId: contributorRoleDefinition.id
+    principalType: 'ServicePrincipal'
+  }
+  scope:containerRegistry
+}
 output acrSubnetResourceId string = virtualNetwork::acrSubnet.id
 output aciSubnetResourceId string = virtualNetwork::aciSubnet.id
 output virutalNetworkId string = virtualNetwork.id
