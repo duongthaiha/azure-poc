@@ -288,3 +288,4 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
+aci-acr-private-access/resource.local.bicepparam
