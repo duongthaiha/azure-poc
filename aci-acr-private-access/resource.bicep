@@ -1,3 +1,4 @@
+@description('This is location default to resource group location')
 param location string = resourceGroup().location    
 param vnetName string = 'vnet-aci-acr' 
 param addressPrefix string = '10.0.0.0/16'
@@ -243,6 +244,7 @@ resource selfHostAgentInstance 'Microsoft.ContainerInstance/containerGroups@2023
     ]
   }
 }
+
 @description('This is the built-in Reader role. See https://docs.microsoft.com/azure/role-based-access-control/built-in-roles#contributor')
 resource readerRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' existing = {
   scope: subscription()
@@ -253,11 +255,44 @@ resource arcPushRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-05-
   scope: subscription()
   name: '8311e382-0749-4cb8-b61a-304f252e45ec'
 } 
-@description('This is the built-in ArcPush role')
-resource contributorRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' existing = {
-  scope: subscription()
-  name: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-} 
+
+resource customTaskRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' = {
+  name: guid('acr-task-role')
+  properties: {
+    roleName: 'acr-task-role'
+    description: 'Custom role for Self-hosted agent to write task'
+      assignableScopes: [
+        resourceGroup().id
+      ]
+    permissions:[
+      {
+        actions:[
+          'Microsoft.ContainerRegistry/registries/tasks/write'
+        ]
+      }
+    ]
+  }
+}
+resource customAcrRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' = {
+  name: guid('acr-role')
+  properties: {
+    roleName: 'acr-role'
+    description: 'Custom role for Self-hosted agent to run ACR Task'
+      assignableScopes: [
+        resourceGroup().id
+      ]
+    permissions:[
+      {
+        actions:[
+          'Microsoft.ContainerRegistry/registries/tasks/listDetails/action'
+          'Microsoft.ContainerRegistry/registries/read'
+          'Microsoft.ContainerRegistry/registries/scheduleRun/action'  
+          'Microsoft.ContainerRegistry/registries/runs/listLogSasUrl/action'      
+        ]
+      }
+    ]
+  }
+}
 
 resource acrTaskArcPushRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(buildTask.id, arcPushRoleDefinition.id, resourceGroup().name)
@@ -280,16 +315,26 @@ resource assignmentReadRoleSelfHostIdentity 'Microsoft.Authorization/roleAssignm
   }
   scope:selfHostAgentInstance
 }
-resource registryContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(selfHostAgentInstance.id, contributorRoleDefinition.id, resourceGroup().name)
+resource registryAcrTaskRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(selfHostAgentInstance.id, customAcrRoleDefinition.id, resourceGroup().name)
   properties: {
     principalId: selfHostAgentInstance.identity.principalId
-    roleDefinitionId: contributorRoleDefinition.id
+    roleDefinitionId: customAcrRoleDefinition.id
     principalType: 'ServicePrincipal'
   }
   scope:containerRegistry
 }
-output acrSubnetResourceId string = virtualNetwork::acrSubnet.id
-output aciSubnetResourceId string = virtualNetwork::aciSubnet.id
-output virutalNetworkId string = virtualNetwork.id
+
+resource registryTaskRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(selfHostAgentInstance.id, customTaskRoleDefinition.id, resourceGroup().name)
+  properties: {
+    principalId: selfHostAgentInstance.identity.principalId
+    roleDefinitionId: customTaskRoleDefinition.id
+    principalType: 'ServicePrincipal'
+  }
+  scope:buildTask
+}
+
+output selfHostAgentInstanceName string = selfHostAgentInstance.name
+output acrName string = containerRegistry.name
  
