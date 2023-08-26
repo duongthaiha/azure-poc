@@ -15,6 +15,6 @@ param GIT_REPO = '' // GitHub URL
 ```
 Run the command to deploy the resournce
 ``` bicep
-  az group create -n <resource-group-name> -l <localtion>
+  az group create -n <resource-group-name> -l <location>
 az deployment group create --template-file main.bicep -g <resource-group-name> --parameters main.bicepparam
 ```
