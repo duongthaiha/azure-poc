@@ -7,10 +7,14 @@ param acrSubnetPrefix string = '10.0.0.0/24'
 param aciSubnetName string = 'aci-subnet'
 param aciSubnetPrefix string = '10.0.1.0/24'
 param acrName string = 'acr${uniqueString(resourceGroup().id)}'
+@description('This is the URL of Azure DevOps organization')
 param AZP_URL string
+@description('This is the PAT of Azure DevOps organization')
 param AZP_TOKEN string
 param AZP_AGENT_NAME string = 'agent${uniqueString(resourceGroup().id)}}'
+@description('This is the URL of Git repository')
 param GIT_TOKEN string
+@description('This is the PAT of Git repository')
 param GIT_REPO string
 
 
