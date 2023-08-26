@@ -5,7 +5,7 @@ This POC demonstrated building container image using Azure DevOps self host agen
 
 Update the parameter file to 
 ```
-using './resource.bicep'
+using './main.bicep'
 
 param AZP_URL = '' // DevOps URL
 param AZP_TOKEN = ''// PAT Token for the Azure DevOps
@@ -16,5 +16,5 @@ param GIT_REPO = '' // GitHub URL
 Run the command to deploy the resournce
 ``` bicep
   az group create -n <resource-group-name> -l <localtion>
-az deployment group create --template-file main.bicep -g <resource-group-name> --parameters main.local.bicepparam
+az deployment group create --template-file main.bicep -g <resource-group-name> --parameters main.bicepparam
 ```
