@@ -289,3 +289,8 @@ __pycache__/
 *.odx.cs
 *.xsd.cs
 aci-acr-private-access/resource.local.bicepparam
+.vscode/
+terraform-aks-multi-node-pool/.terraform.lock.hcl
+terraform-aks-multi-node-pool/terraform.tfstate
+terraform-aks-multi-node-pool/terraform.tfstate.backup
+terraform-aks-multi-node-pool/.terraform/
