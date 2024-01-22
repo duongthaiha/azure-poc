@@ -18,7 +18,7 @@ var cosmosSecondaryPEPName = 'pep-cosmos-secondary-${uniqueSurfix}'
 
 var primaryDNSZoneName = 'primary${uniqueSurfix}.documents.azure.com'
 var secondaryDNSZoneName = 'secondary${uniqueSurfix}.documents.azure.com'
-resource vnet1 'Microsoft.Network/virtualNetworks@2021-02-01' = {
+resource vnet1 'Microsoft.Network/virtualNetworks@2023-06-01' = {
   name: primaryVnetName
   location: primaryLocation
   properties: {
@@ -45,7 +45,7 @@ resource vnet1 'Microsoft.Network/virtualNetworks@2021-02-01' = {
   }
 }
 
-resource vnet2 'Microsoft.Network/virtualNetworks@2021-02-01' = {
+resource vnet2 'Microsoft.Network/virtualNetworks@2023-06-01' = {
   name: secondaryVnetName
   location: secondaryLocation
   properties: {
@@ -73,7 +73,7 @@ resource vnet2 'Microsoft.Network/virtualNetworks@2021-02-01' = {
   }
 }
 
-resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2021-04-15' = {
+resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' = {
   name: cosmosDBName
   location: primaryLocation
   kind: 'GlobalDocumentDB'
@@ -94,7 +94,7 @@ resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2021-04-15' = {
   }
 }
 
-resource privateEndpoint1 'Microsoft.Network/privateEndpoints@2021-02-01' = {
+resource privateEndpoint1 'Microsoft.Network/privateEndpoints@2023-04-01' = {
   name: cosmosPrimaryPEPName
   location: primaryLocation
   properties: {
@@ -115,7 +115,7 @@ resource privateEndpoint1 'Microsoft.Network/privateEndpoints@2021-02-01' = {
   }
 }
 
-resource privateEndpoint2 'Microsoft.Network/privateEndpoints@2021-02-01' = {
+resource privateEndpoint2 'Microsoft.Network/privateEndpoints@2023-04-01' = {
   name: cosmosSecondaryPEPName
   location: secondaryLocation
   properties: {
@@ -138,45 +138,46 @@ resource privateEndpoint2 'Microsoft.Network/privateEndpoints@2021-02-01' = {
 resource privateDnsZone1 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: primaryDNSZoneName
   location: 'global'
-}
-
-
-resource vnetLink1 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  parent: privateDnsZone1
-  name: 'vnetLink1'
-  location: 'global'
-  properties: {
-    virtualNetwork: {
-      id: vnet1.id
+  resource vnetLink1 'virtualNetworkLinks@2020-06-01' = {
+    name: 'vnetLink1'
+    location: 'global'
+    
+    properties: {
+      registrationEnabled: false
+      virtualNetwork:{
+        id: vnet1.id
+      }
     }
-    registrationEnabled: true
   }
 }
+
+
+
 
 
 resource privateDnsZone2 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: secondaryDNSZoneName
   location: 'global'
-}
-
-resource vnetLink2 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  parent: privateDnsZone2
-  name: 'vnetLink2'
-  location: 'global'
-  properties: {
-    virtualNetwork: {
-      id: vnet2.id
+  resource vnetLink2 'virtualNetworkLinks@2020-06-01' = {
+    name: 'vnetLink2'
+    location: 'global'
+    properties: {
+      virtualNetwork: {
+        id: vnet2.id
+      }
+      registrationEnabled: false
     }
-    registrationEnabled: true
   }
 }
-resource privateDnsZoneGroup1 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-02-01' = {
+
+
+resource privateDnsZoneGroup1 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-04-01' = {
   parent: privateEndpoint1
-  name: 'default'
+  name: 'dnszonegroup1'
   properties: {
     privateDnsZoneConfigs: [
       {
-        name: 'default'
+        name: 'config'
         properties: {
           privateDnsZoneId: privateDnsZone1.id
         }
@@ -184,13 +185,13 @@ resource privateDnsZoneGroup1 'Microsoft.Network/privateEndpoints/privateDnsZone
     ]
   }
 }
-resource privateDnsZoneGroup2 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-02-01' = {
+resource privateDnsZoneGroup2 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-04-01' = {
   parent: privateEndpoint2
-  name: 'default'
+  name: 'dnszonegroup2'
   properties: {
     privateDnsZoneConfigs: [
       {
-        name: 'default'
+        name: 'config'
         properties: {
           privateDnsZoneId: privateDnsZone2.id
         }
