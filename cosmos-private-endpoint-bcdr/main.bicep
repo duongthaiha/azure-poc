@@ -39,6 +39,7 @@ resource vnet1 'Microsoft.Network/virtualNetworks@2023-06-01' = {
         properties: {
           addressPrefix: '10.0.2.0/24'
           privateEndpointNetworkPolicies: 'Disabled'
+          privateLinkServiceNetworkPolicies: 'Enabled'
         }
       }
     ]
@@ -66,6 +67,7 @@ resource vnet2 'Microsoft.Network/virtualNetworks@2023-06-01' = {
         properties: {
           addressPrefix: '10.1.2.0/24'
           privateEndpointNetworkPolicies: 'Disabled'
+          privateLinkServiceNetworkPolicies: 'Enabled'
 
         }
       }
