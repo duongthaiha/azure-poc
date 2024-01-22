@@ -82,12 +82,12 @@ resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' = {
   properties: {
     locations: [
       {
-        locationName: 'eastus'
+        locationName: primaryLocation
         failoverPriority: 0
         isZoneRedundant: false
       }
       {
-        locationName: 'eastus2'
+        locationName: secondaryLocation
         failoverPriority: 1
         isZoneRedundant: false
       }
@@ -143,7 +143,6 @@ resource privateDnsZone1 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   resource vnetLink1 'virtualNetworkLinks@2020-06-01' = {
     name: 'vnetLink1'
     location: 'global'
-    
     properties: {
       registrationEnabled: false
       virtualNetwork:{
