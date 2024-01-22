@@ -10,11 +10,11 @@ var cosmosDBName = 'cosmos-${resourceGroup().name}${uniqueSurfix}'
 
 // Vnetname must be between 3 and 64 characters long, and can contain only letters, numbers, and hyphens. 
 // Random base on the resource group name.
-var primaryVnetName = 'vnet-primary-${resourceGroup().name}${uniqueSurfix}'
-var secondaryVnetName = 'vnet-secondary-${resourceGroup().name}${uniqueString(uniqueSurfix)}'
+var primaryVnetName = 'vnet-primary-${uniqueSurfix}'
+var secondaryVnetName = 'vnet-secondary-${uniqueSurfix}'
 
-var cosmosPrimaryPEPName = 'pep-cosmos-primary-${resourceGroup().name}${uniqueSurfix}'
-var cosmosSecondaryPEPName = 'pep-cosmos-secondary-${resourceGroup().name}${uniqueSurfix}'
+var cosmosPrimaryPEPName = 'pep-cosmos-primary-${uniqueSurfix}'
+var cosmosSecondaryPEPName = 'pep-cosmos-secondary-${uniqueSurfix}'
 
 var primaryDNSZoneName = 'primary${uniqueSurfix}.documents.azure.com'
 var secondaryDNSZoneName = 'secondary${uniqueSurfix}.documents.azure.com'
@@ -66,6 +66,7 @@ resource vnet2 'Microsoft.Network/virtualNetworks@2021-02-01' = {
         properties: {
           addressPrefix: '10.1.2.0/24'
           privateEndpointNetworkPolicies: 'Disabled'
+
         }
       }
     ]
@@ -175,7 +176,7 @@ resource privateDnsZoneGroup1 'Microsoft.Network/privateEndpoints/privateDnsZone
   properties: {
     privateDnsZoneConfigs: [
       {
-        name: 'config1'
+        name: 'default'
         properties: {
           privateDnsZoneId: privateDnsZone1.id
         }
@@ -189,7 +190,7 @@ resource privateDnsZoneGroup2 'Microsoft.Network/privateEndpoints/privateDnsZone
   properties: {
     privateDnsZoneConfigs: [
       {
-        name: 'config1'
+        name: 'default'
         properties: {
           privateDnsZoneId: privateDnsZone2.id
         }
