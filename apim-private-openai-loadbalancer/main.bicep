@@ -15,6 +15,9 @@ param vmName string
 param vmUsername string
 @secure()
 param vmPassword string
+param eventHubNamespaceName string
+param eventHubName string
+param privateEventHubEndpointName string
 param location string = resourceGroup().location
 
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-08-01' = {
@@ -222,7 +225,7 @@ resource publicIP 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
     publicIPAllocationMethod: 'Static'
     publicIPAddressVersion: 'IPv4'
     dnsSettings: {
-      domainNameLabel: 'apim-aoai-internal-management'
+      domainNameLabel: apimName
     }
   }
 }
@@ -509,6 +512,35 @@ resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneG
   }
 }
 
+resource azureApiDNSZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'azure-api.net'
+  location: 'global'
+} 
+
+
+resource aRecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
+  parent: azureApiDNSZone
+  name: apimName
+  properties: {
+    ttl: 3600
+    aRecords: [
+      {
+        ipv4Address: apim.properties.privateIPAddresses[0]
+      }
+    ]
+  }
+}
+resource azureAPIDNSVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: azureApiDNSZone
+  name: 'vnetLink'
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: vnet.id
+    }
+    registrationEnabled: false
+  }
+}
 
 resource backendPTU 'Microsoft.ApiManagement/service/backends@2021-04-01-preview' = {
   parent: apim
@@ -536,15 +568,15 @@ resource secretUserRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-
   scope: subscription()
   name: '4633458b-17de-408a-b874-0445c86b69e6'
 } 
-// resource secretUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   name: guid(apim.id, secretUserRoleDefinition.id, resourceGroup().name)
-//   properties: {
-//     principalId: apim.identity.principalId
-//     roleDefinitionId: secretUserRoleDefinition.id
-//     principalType: 'ServicePrincipal'
-//   }
-//   scope:keyVault
-// }
+resource secretUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(apim.id, secretUserRoleDefinition.id, resourceGroup().name)
+  properties: {
+    principalId: apim.identity.principalId
+    roleDefinitionId: secretUserRoleDefinition.id
+    principalType: 'ServicePrincipal'
+  }
+  scope:keyVault
+}
 
 
 
@@ -553,25 +585,25 @@ resource openaiUserRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-
   scope: subscription()
   name: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
 } 
-// resource ptuOpenAIUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   name: guid(apim.id, openaiUserRoleDefinition.id, resourceGroup().name,ptuAOAIName)
-//   properties: {
-//     principalId: apim.identity.principalId
-//     roleDefinitionId: openaiUserRoleDefinition.id
-//     principalType: 'ServicePrincipal'
-//   }
-//   scope:ptuAOAI
-// }
+resource ptuOpenAIUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(apim.id, openaiUserRoleDefinition.id, resourceGroup().name,ptuAOAIName)
+  properties: {
+    principalId: apim.identity.principalId
+    roleDefinitionId: openaiUserRoleDefinition.id
+    principalType: 'ServicePrincipal'
+  }
+  scope:ptuAOAI
+}
 
-// resource paygOpenAIUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   name: guid(apim.id, openaiUserRoleDefinition.id, resourceGroup().name, paygAOAIName)
-//   properties: {
-//     principalId: apim.identity.principalId
-//     roleDefinitionId: openaiUserRoleDefinition.id
-//     principalType: 'ServicePrincipal'
-//   }
-//   scope:paygAOAI
-// }
+resource paygOpenAIUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(apim.id, openaiUserRoleDefinition.id, resourceGroup().name, paygAOAIName)
+  properties: {
+    principalId: apim.identity.principalId
+    roleDefinitionId: openaiUserRoleDefinition.id
+    principalType: 'ServicePrincipal'
+  }
+  scope:paygAOAI
+}
 
 // resource namedValuePtuKey 'Microsoft.ApiManagement/service/namedValues@2021-04-01-preview' = {
 //   parent: apim
@@ -665,7 +697,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-04-01' = {
       }
     }
     osProfile: {
-      computerName: substring(vmName, 0, 15)
+      computerName: take(vmName, 15)
       adminUsername: vmUsername
       adminPassword: vmPassword
     }
