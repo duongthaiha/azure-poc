@@ -182,6 +182,21 @@ resource vnet 'Microsoft.Network/virtualNetworks@2021-02-01' = {
         }
       }
       {
+        name: 'snet-functionapp'
+        properties: {
+          addressPrefix: '10.0.4.0/25'
+          delegations: [
+            {
+              name: 'Microsoft.Web/serverFarms'
+              properties: {
+                serviceName: 'Microsoft.Web/serverFarms'
+              }
+            }
+          ]
+        }
+      }
+      
+      {
         name: 'AzureBastionSubnet'
         properties: {
           addressPrefix: '10.0.0.128/26'
@@ -216,7 +231,10 @@ resource subnetbastion 'Microsoft.Network/virtualNetworks/subnets@2023-09-01' ex
   parent: vnet
 }
 
-
+resource subnetfunctionapp 'Microsoft.Network/virtualNetworks/subnets@2023-09-01' existing = {
+  name: 'snet-functionapp'
+  parent: vnet
+}
 resource publicIP 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
   name: 'pip-apim-management'
   location: location
@@ -908,6 +926,7 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
     type: 'SystemAssigned'
   }
   properties: {
+    virtualNetworkSubnetId: subnetfunctionapp.id
     serverFarmId: hostingPlan.id
     siteConfig: {
       appSettings: [
