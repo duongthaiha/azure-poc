@@ -1,0 +1,5 @@
+POST https://apim-aoai-internal-hd7.azure-api.net/aoai/deployments/gpt-35-turbo/chat/completions?api-version=2024-02-01 HTTP/1.1
+content-type: application/json
+ocp-apim-subscription-key: xxxx
+
+{"messages":[{"role": "system", "content": "You are a helpful assistant."},{"role": "user", "content": "Does Azure OpenAI support customer managed keys?"},{"role": "assistant", "content": "Yes, customer managed keys are supported by Azure OpenAI."},{"role": "user", "content": "Do other Azure AI services support this too?"}]}
