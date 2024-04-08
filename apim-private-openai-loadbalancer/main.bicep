@@ -18,6 +18,8 @@ param vmPassword string
 param eventHubNamespaceName string
 param eventHubName string
 param privateEventHubEndpointName string
+param privateEventHubFuncAPIMLoggerName string
+param functionName string
 param location string = resourceGroup().location
 
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-08-01' = {
@@ -253,7 +255,7 @@ resource apim 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
 }
 
 resource apimlogger 'Microsoft.ApiManagement/service/loggers@2023-05-01-preview' = {
-  name: applicationInsightsName
+  name: 'applicationInsightsName'
   parent: apim
   properties: {
     credentials: {
@@ -726,6 +728,270 @@ resource bastionHost 'Microsoft.Network/bastionHosts@2023-09-01' = {
             id: publicManagementIP.id
           }
           
+        }
+      }
+    ]
+  }
+}
+
+
+resource eventHubNamespace 'Microsoft.EventHub/namespaces@2023-01-01-preview' = {
+  name: eventHubNamespaceName
+  location: location
+  sku: {
+    name: 'Standard'
+    capacity: 1
+  }
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    isAutoInflateEnabled: false
+    publicNetworkAccess: 'Disabled'
+  }
+}
+resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2021-01-01-preview' = {
+  parent: eventHubNamespace
+  name: eventHubName
+  properties: {
+    messageRetentionInDays: 7
+    partitionCount: 2
+  }
+}
+
+resource privateEndpointEventHub 'Microsoft.Network/privateEndpoints@2023-09-01' = {
+  name: privateEventHubEndpointName
+  location: location
+  properties: {
+    subnet: {
+      id: subnetpep.id
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'plsConnection'
+        properties: {
+          privateLinkServiceId: eventHubNamespace.id
+          groupIds: [
+            'namespace'
+          ]
+        }
+      }
+    ]
+  }
+}
+resource privateDnsZoneEventHub 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.servicebus.windows.net'
+  location: 'global'
+}
+resource eventHubDNSVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: privateDnsZoneEventHub
+  name: 'vnetLink'
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: vnet.id
+    }
+    registrationEnabled: false
+  }
+}
+resource eventhubDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-09-01' = {
+  parent: privateEndpointEventHub
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config1'
+        properties: {
+          privateDnsZoneId: privateDnsZoneEventHub.id
+        }
+      }
+    ]
+  }
+}
+@description('This is the built-in dataSender role')
+resource dataSenderDefinition 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' existing = {
+  scope: subscription()
+  name: '2b629674-e913-4c01-ae53-ef4638d8f975'
+} 
+resource dataSenderRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(apim.id, dataSenderDefinition.id, resourceGroup().name)
+  properties: {
+    principalId: apim.identity.principalId
+    roleDefinitionId: dataSenderDefinition.id
+    principalType: 'ServicePrincipal'
+  }
+  scope:eventHub
+}
+resource eventhubLoggerWithSystemAssignedIdentity 'Microsoft.ApiManagement/service/loggers@2023-05-01-preview' = {
+  name: 'OpenAiChargeBackLogger'
+  parent: apim
+  properties: {
+    loggerType: 'azureEventHub'
+    description: 'Event hub logger with system-assigned managed identity'
+    isBuffered: true
+    credentials: {
+      endpointAddress: '${eventHubNamespace.name}.servicebus.windows.net'
+      identityClientId: 'systemAssigned'
+      name: eventHubName
+    }
+  }
+}
+//Grant permission for APIM to send data to EventHub
+@description('This is the built-in dataSender role')
+resource dataReceiverDefinition 'Microsoft.Authorization/roleDefinitions@2022-05-01-preview' existing = {
+  scope: subscription()
+  name: 'a638d3c7-ab3a-418d-83e6-5f17a39d4fde'
+} 
+resource dataReceiverRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(functionApp.id, dataSenderDefinition.id, resourceGroup().name)
+  properties: {
+    principalId: functionApp.identity.principalId
+    roleDefinitionId: dataReceiverDefinition.id
+    principalType: 'ServicePrincipal'
+  }
+  scope:eventHub
+}
+
+//Function
+
+resource functionLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-08-01' = {
+  name: 'logws-${functionName}'
+  location: location  
+  properties: {
+    retentionInDays: 30
+    sku: {
+      name: 'PerGB2018'
+    }
+  }
+}
+
+resource functionApplicationInsights 'Microsoft.Insights/components@2020-02-02-preview' = {
+  name: 'ai-${functionName}'
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: functionLogAnalyticsWorkspace.id
+  }
+}
+var storageAccountName = 'st${replace(functionName, '-', '')}'
+resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
+  name: '${storageAccountName}'
+  location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'Storage'
+  properties: {
+    supportsHttpsTrafficOnly: true
+    defaultToOAuthAuthentication: true
+  }
+}
+var hostingPlanName = 'asp-${functionName}'
+resource hostingPlan 'Microsoft.Web/serverfarms@2021-03-01' = {
+  name: hostingPlanName
+  location: location
+  sku: {
+    name: 'EP1'
+    tier: 'ElasticPremium'
+  }
+  properties: {}
+  kind: 'elastic'
+
+}
+
+resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
+  name: functionName
+  location: location
+  kind: 'functionapp'
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    serverFarmId: hostingPlan.id
+    siteConfig: {
+      appSettings: [
+        {
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+        }
+        {
+          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+        }
+        {
+          name: 'WEBSITE_CONTENTSHARE'
+          value: toLower(functionName)
+        }
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'WEBSITE_NODE_DEFAULT_VERSION'
+          value: '~14'
+        }
+        {
+          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+          value: functionApplicationInsights.properties.InstrumentationKey
+        }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: 'dotnet'
+        }
+      ]
+      ftpsState: 'FtpsOnly'
+      minTlsVersion: '1.2'
+    }
+    httpsOnly: true
+  }
+}
+
+
+resource privateEndpointFuncAPIMLogger 'Microsoft.Network/privateEndpoints@2023-09-01' = {
+  name: privateEventHubFuncAPIMLoggerName
+  location: location
+  properties: {
+    subnet: {
+      id: subnetpep.id
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'plsConnection'
+        properties: {
+          privateLinkServiceId: functionApp.id
+          groupIds: [
+            'sites'
+          ]
+        }
+      }
+    ]
+  }
+}
+resource privateDnsZoneFuncAPIMLogger 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.azurewebsites.net'
+  location: 'global'
+}
+resource funcAPIMLoggerDNSVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: privateDnsZoneFuncAPIMLogger
+  name: 'vnetLink'
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: vnet.id
+    }
+    registrationEnabled: false
+  }
+}
+resource funcAPIMLoggerDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-09-01' = {
+  parent: privateEndpointFuncAPIMLogger
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config1'
+        properties: {
+          privateDnsZoneId: privateDnsZoneFuncAPIMLogger.id
         }
       }
     ]
