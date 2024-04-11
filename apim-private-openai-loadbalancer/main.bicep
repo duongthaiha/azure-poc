@@ -956,7 +956,15 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
         }
         {
           name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'dotnet'
+          value: 'dotnet-isolated'
+        }
+        {
+          name: 'EventHubName'
+          value: eventHubName
+        }
+        {
+          name: 'EventHubConnection__fullyQualifiedNamespace'
+          value: '${eventHubNamespace.name}.servicebus.windows.net'
         }
       ]
       ftpsState: 'FtpsOnly'

@@ -3,12 +3,10 @@
         <base />
         <set-backend-service backend-id="AOAI_PTU" />
         <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
-
     </inbound>
     <backend>
         <retry condition="@(context.Response.StatusCode == 429 || context.Response.StatusCode >= 500)" count="5" interval="1" delta="1" max-interval="8" first-fast-retry="false">
             <!-- Failover logic below - uncomment to retry on secondary backend -->
-            
             <choose>
                 <when condition="@(context.Response.StatusCode == 429 || context.Response.StatusCode >= 500)">
                     <set-backend-service backend-id="AOAI_PAYO" />
@@ -18,22 +16,21 @@
         </retry>
     </backend>
     <outbound>
-         <choose>
+        <!-- <choose>
             <when condition="@(context.Response.StatusCode == 200)">
                 <log-to-eventhub logger-id="OpenAiChargeBackLogger">@{
                 var responseBody = context.Response.Body?.As<JObject>(true);
                 return new JObject(
                     new JProperty("Timestamp", DateTime.UtcNow.ToString()),
                     new JProperty("ApiOperation", responseBody["object"].ToString()),
-                    new JProperty("AppKey", context.Request.Headers.GetValueOrDefault("Ocp-Apim-Subscription-Key",string.Empty)),
                      new JProperty("PromptTokens", responseBody["usage"]["prompt_tokens"].ToString()),
                     new JProperty("CompletionTokens", responseBody["usage"]["completion_tokens"].ToString()),                   
-                    new JProperty("TotalTokens", responseBody["usage"]["total_tokens"].ToString())
+                    new JProperty("TotalTokens", responseBody["usage"]["total_tokens"].ToString()),
+                    new JProperty("SubcriptionId", context.Subscription.Id)
                 ).ToString();
-        }</log-to-eventhub>
+            }</log-to-eventhub>
             </when>
-        </choose>
-        
+        </choose>  -->
         <base />
     </outbound>
     <on-error>
