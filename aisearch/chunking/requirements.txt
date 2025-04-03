@@ -1,0 +1,12 @@
+azure-common
+azure-core
+azure-identity
+azure-search-documents==11.6.0b9
+azure-storage-blob
+dotenv
+tiktoken
+matplotlib
+openai
+langchain
+langchain-community
+pypdf
